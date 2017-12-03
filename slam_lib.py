@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import timeit
 
 
-def slam(particles, weights, lidar, MAP, head, odom_prev, odom):
+def slam(particles, weights, lidar, MAP, head, odom_prev, odom, x_best):
     particles = prediction(particles, odom_prev, odom)
-    particles, weights, x_best = update(particles, weights, lidar, MAP, head)
+    particles, weights, new_best = update(particles, weights, lidar, MAP, head)
     MAP = mapping(MAP, lidar, head, x_best)
-    return particles, weights, MAP
+    return particles, weights, MAP, new_best
 
 
 def resampling(particles, weights):
