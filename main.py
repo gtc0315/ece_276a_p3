@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # load_data.replay_depth(d0)
 
     n = len(l0)
-    particle_num = 30
+    particle_num = 5
     x = np.array([0, 0, 0])
     particles = np.zeros((3, particle_num))
     weights = np.log(np.ones((1, particle_num))[0] / particle_num)
