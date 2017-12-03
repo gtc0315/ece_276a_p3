@@ -61,7 +61,8 @@ def update(particles, weights, lidar, MAP, head):
         pose = particles[:, i]
         c_array = []
         pose_array = []
-        for w_yaw in np.arange(-0.04, 0.04 + 0.01, 0.01):
+        for w_yaw in np.arange(-0.01, 0.01 + 0.0025, 0.0025):
+
             pose += [0, 0, w_yaw]
 
             xs0, ys0 = Cartesian2World(xs0, ys0, head, pose)
@@ -83,7 +84,7 @@ def update(particles, weights, lidar, MAP, head):
 
     x_best = particles[:, np.argmax(weights)]
 
-    if N_eff < n / 2:
+    if N_eff < n * 0.7:
         particles, weights = resampling(particles, weights)
     print "update " + str(round(timeit.default_timer() - start, 3)) + ' seconds',
     return particles, weights, x_best
@@ -95,7 +96,7 @@ def prediction(particles, odom_prev, odom):
     p1, R1 = pose_transform(odom_prev)
     p_u, R_u = smart_minus(p1, R1, p2, R2)
     for i in range(np.shape(particles)[1]):
-        sigma = 0.00005
+        sigma = np.array([0.00005, 0.00005, 0.00001])
         w = sigma * np.random.randn(1, 3)[0]
         p_x, R_x = pose_transform(particles[:, i] + w)
         p, R = smart_plus(p_x, R_x, p_u, R_u)
