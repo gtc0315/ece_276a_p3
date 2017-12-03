@@ -95,7 +95,7 @@ def prediction(particles, odom_prev, odom):
     p1, R1 = pose_transform(odom_prev)
     p_u, R_u = smart_minus(p1, R1, p2, R2)
     for i in range(np.shape(particles)[1]):
-        sigma = 0.0001
+        sigma = 0.00005
         w = sigma * np.random.randn(1, 3)[0]
         p_x, R_x = pose_transform(particles[:, i] + w)
         p, R = smart_plus(p_x, R_x, p_u, R_u)
