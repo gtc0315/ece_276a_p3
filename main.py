@@ -48,9 +48,7 @@ if __name__ == '__main__':
         remaintime = round((timeit.default_timer() - timer) * (n - i) / 60)
         print str(round(i * 100.0 / n, 1)) + "%" + ' remain: ' + str(remaintime) + ' mins'
         timer = timeit.default_timer()
-    slam_lib.plot_map(MAP)
-    plt.plot(x_array[0, :], x_array[1, :])
-    plt.show()
+
     print "done in " + str(round(timeit.default_timer() - start, 2)) + ' seconds'
 
     data = [MAP, x_array]

@@ -61,7 +61,7 @@ def update(particles, weights, lidar, MAP, head):
         pose = particles[:, i]
         c_array = []
         pose_array = []
-        for w_yaw in np.arange(-0.2, 0.2 + 0.05, 0.05):
+        for w_yaw in np.arange(-0.04, 0.04 + 0.01, 0.01):
             pose += [0, 0, w_yaw]
 
             xs0, ys0 = Cartesian2World(xs0, ys0, head, pose)
