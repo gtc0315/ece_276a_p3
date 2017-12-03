@@ -72,11 +72,11 @@ def update(particles, weights, lidar, MAP, head):
 
             c = p3_utils.mapCorrelation(binary_map.astype(np.int8), x_im, y_im, Y[0:3, :], x_range, y_range)
             c_array.append(np.amax(c))
-            ix, iy = np.unravel_index(np.argmax(c), (9, 9))
-            pose_array.append(pose + [x_range[ix], y_range[iy], 0])
+            # ix, iy = np.unravel_index(np.argmax(c), (9, 9))
+            # pose_array.append(pose + [x_range[ix], y_range[iy], 0])
         corr_array[i] = np.amax(c_array)
-        pose = pose_array[np.argmax(c_array)]
-        particles[:, i] = pose
+        # pose = pose_array[np.argmax(c_array)]
+        # particles[:, i] = pose
 
     weights += corr_array
     weights = weights - np.amax(weights) - np.log(np.sum(np.exp(weights - np.amax(weights))))
