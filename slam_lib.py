@@ -52,7 +52,7 @@ def update(particles, weights, lidar, MAP, head):
 
     x_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
     y_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
-    yaw_range = np.arange(-0.1, 0.1 + 0.05, 0.05)
+    yaw_range = np.arange(-0.01, 0.01 + 0.005, 0.005)
 
     binary_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
     binary_map[binary_map > 0.6] = 1
@@ -70,12 +70,10 @@ def update(particles, weights, lidar, MAP, head):
 
             c = p3_utils.mapCorrelation(binary_map.astype(np.int8), x_im, y_im, Y[0:3, :], x_range, y_range)
             c_array.append(np.amax(c))
-            # ix, iy = np.unravel_index(np.argmax(c), (9, 9))
-            # pose_array.append(newpose + [x_range[ix], y_range[iy], 0])
+            ix, iy = np.unravel_index(np.argmax(c), (9, 9))
+            pose_array.append(pose + [x_range[ix], y_range[iy], w_yaw])
         corr_array[i] = np.amax(c_array)
-        particles[:, i] += [0, 0, yaw_range[np.argmax(c_array)]]
-        # pose = pose_array[np.argmax(c_array)]
-        # particles[:, i] = pose
+        particles[:, i] = pose_array[np.argmax(c_array)]
 
     weights += corr_array
     weights = weights - np.amax(weights) - np.log(np.sum(np.exp(weights - np.amax(weights))))
