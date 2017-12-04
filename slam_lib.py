@@ -50,9 +50,9 @@ def update(particles, weights, lidar, MAP, head):
     x_im = np.arange(MAP['xmin'], MAP['xmax'] + MAP['res'], MAP['res'])  # x-positions of each pixel of the map
     y_im = np.arange(MAP['ymin'], MAP['ymax'] + MAP['res'], MAP['res'])  # y-positions of each pixel of the map
 
-    x_range = np.arange(-0.02, 0.02 + 0.005, 0.005)
-    y_range = np.arange(-0.02, 0.02 + 0.005, 0.005)
-    yaw_range = np.arange(-0.01, 0.01 + 0.005, 0.005)
+    x_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
+    y_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
+    yaw_range = np.arange(-0.1, 0.1 + 0.05, 0.05)
 
     binary_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
     binary_map[binary_map > 0.6] = 1
@@ -197,7 +197,7 @@ def find_head_angles(j0, ts):
 def pose_transform(pose):
     x, y, theta = pose
     R = transforms3d.euler.euler2mat(0, 0, theta, 'sxyz')
-    p = np.array([x, y, 0])
+    p = np.array([x, y, 0.93])
     return p, R
 
 
