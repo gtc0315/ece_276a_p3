@@ -50,8 +50,8 @@ def update(particles, weights, lidar, MAP, head):
     x_im = np.arange(MAP['xmin'], MAP['xmax'] + MAP['res'], MAP['res'])  # x-positions of each pixel of the map
     y_im = np.arange(MAP['ymin'], MAP['ymax'] + MAP['res'], MAP['res'])  # y-positions of each pixel of the map
 
-    x_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
-    y_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
+    x_range = np.arange(-0.02, 0.02 + 0.005, 0.005)
+    y_range = np.arange(-0.02, 0.02 + 0.005, 0.005)
     yaw_range = np.arange(-0.01, 0.01 + 0.005, 0.005)
 
     binary_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
