@@ -63,9 +63,7 @@ def update(particles, weights, lidar, MAP, head):
         c_array = []
         pose_array = []
         for w_yaw in yaw_range:
-            newpose = pose + [0, 0, w_yaw]
-
-            xs0, ys0 = Cartesian2World(xs0, ys0, head, newpose)
+            xs0, ys0 = Cartesian2World(xs0, ys0, head, pose + [0, 0, w_yaw])
 
             # convert position in the map frame here
             Y = np.concatenate([np.concatenate([xs0, ys0], axis=0), np.zeros(xs0.shape)], axis=0)
