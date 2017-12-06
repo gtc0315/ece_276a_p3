@@ -5,10 +5,13 @@ import matplotlib.pyplot as plt
 import timeit
 
 
-def slam(particles, weights, lidar, MAP, head, odom_prev, odom, x_best):
+def slam(particles, weights, lidar, MAP, head, odom_prev, odom, i_best,iter):
     particles = prediction(particles, odom_prev, odom)
-    particles, weights, new_best = update(particles, weights, lidar, MAP, head)
-    MAP = mapping(MAP, lidar, head, x_best)
+    if iter%10==0:
+        particles, weights, new_best = update(particles, weights, lidar, MAP, head)
+        MAP = mapping(MAP, lidar, head, particles[:,i_best])
+    else:
+        new_best = i_best
     return particles, weights, MAP, new_best
 
 
@@ -52,11 +55,13 @@ def update(particles, weights, lidar, MAP, head):
 
     x_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
     y_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
-    yaw_range = np.arange(-0.1, 0.1 + 0.05, 0.05)
+    yaw_range = np.arange(-0.2, 0.2 + 0.1, 0.1)
 
-    binary_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
-    binary_map[binary_map > 0.6] = 1
-    binary_map[binary_map <= 0.6] = 0
+    converted_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
+    binary_map = converted_map
+    binary_map[converted_map > 0.6] = 1
+    binary_map[np.logical_and(converted_map <= 0.6 , converted_map >= 0.4)] = 0
+    binary_map[converted_map < 0.4] = -1
 
     for i in range(n):
         pose = particles[:, i]
@@ -70,30 +75,32 @@ def update(particles, weights, lidar, MAP, head):
 
             c = p3_utils.mapCorrelation(binary_map.astype(np.int8), x_im, y_im, Y[0:3, :], x_range, y_range)
             c_array.append(np.amax(c))
-            ix, iy = np.unravel_index(np.argmax(c), (9, 9))
+            ix, iy = np.unravel_index(np.argmax(c), (9,9))
             pose_array.append(pose + [x_range[ix], y_range[iy], w_yaw])
         corr_array[i] = np.amax(c_array)
-        particles[:, i] = pose_array[np.argmax(c_array)]
+        # particles[:, i] = pose_array[np.argmax(c_array)]
 
     weights += corr_array
     weights = weights - np.amax(weights) - np.log(np.sum(np.exp(weights - np.amax(weights))))
     N_eff = 1 / np.sum(np.power(np.exp(weights), 2))
 
-    x_best = particles[:, np.argmax(weights)]
+    i_best = np.argmax(weights)
 
-    if N_eff < n * 0.7:
+    if N_eff < n / 2:
         particles, weights = resampling(particles, weights)
     print "update " + str(round(timeit.default_timer() - start, 3)) + ' seconds',
-    return particles, weights, x_best
+    return particles, weights, i_best
 
 
 def prediction(particles, odom_prev, odom):
+    n = np.shape(particles)[1]
     p2, R2 = pose_transform(odom)
     p1, R1 = pose_transform(odom_prev)
     p_u, R_u = smart_minus(p1, R1, p2, R2)
-    for i in range(np.shape(particles)[1]):
-        sigma = np.array([0.0001, 0.0001, 0.0001])  # ([0.00005, 0.00005, 0.00001])
-        w = sigma * np.random.randn(1, 3)[0]
+    noise = np.random.randn(n, 3)
+    for i in range(n):
+        sigma = np.array([0.0001, 0.0001, 0.0001])
+        w = sigma * noise[i,:]
         p_x, R_x = pose_transform(particles[:, i] + w)
         p, R = smart_plus(p_x, R_x, p_u, R_u)
         roll, pitch, yaw = transforms3d.euler.mat2euler(R, axes='sxyz')
@@ -194,10 +201,10 @@ def find_head_angles(j0, ts):
     return pitch, yaw
 
 
-def pose_transform(pose):
+def pose_transform(pose, height=0.93):
     x, y, theta = pose
     R = transforms3d.euler.euler2mat(0, 0, theta, 'sxyz')
-    p = np.array([x, y, 0.93])
+    p = np.array([x, y, height])
     return p, R
 
 
@@ -216,7 +223,9 @@ def Cartesian2World(x, y, head, pose):
     pos = np.matrix(np.vstack((x, y, z, a)))
     newpos = T * pos
 
-    return np.asarray(newpos[0]), np.asarray(newpos[1])
+    aboveGround = newpos[2]>0.1
+
+    return np.asarray(newpos[0][aboveGround]), np.asarray(newpos[1][aboveGround])
 
 
 def smart_plus(p1, R1, p2, R2):
