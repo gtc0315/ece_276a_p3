@@ -10,9 +10,9 @@ import pickle
 if __name__ == '__main__':
     start = timeit.default_timer()  # start timer
     # load data
-    j0 = load_data.get_joint("joint/train_joint0")
+    j0 = load_data.get_joint("joint/train_joint3")
     head_idx = load_data.get_joint_index('Head')
-    l0 = load_data.get_lidar("lidar/train_lidar0")
+    l0 = load_data.get_lidar("lidar/train_lidar3")
     # r0 = load_data.get_rgb("cam/RGB_0")
     # d0 = load_data.get_depth("cam/DEPTH_0")
     # exIR_RGB = load_data.getExtrinsics_IR_RGB()
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # load_data.replay_rgb(r0)
     # load_data.replay_depth(d0)
 
-    particle_num = 100
+    particle_num = 10
     n = len(l0)
     x = np.array([0, 0, 0])
     particles = np.zeros((3, particle_num))
@@ -39,17 +39,21 @@ if __name__ == '__main__':
         odom = l0[i]['pose'][0]
         # x = slam_lib.dead_reckoning(x, odom_prev, odom)
         # particles = slam_lib.prediction(particles, odom_prev, odom)
-        particles, weights, MAP, i_best = slam_lib.slam(particles, weights, l0[i], MAP, head, odom_prev, odom, i_best,i)
+        particles, weights, MAP, i_best = slam_lib.slam(particles, weights, l0[i], MAP, head, odom_prev, odom, i_best,
+                                                        i)
         odom_prev = odom
 
-        x_array[:,i] = particles[:,i_best]
+        x_array[:, i] = particles[:, i_best]
 
-        remaintime = round((timeit.default_timer() - start)/(i+1) * (n - i) / 60)
+        remaintime = round((timeit.default_timer() - start) / (i + 1) * (n - i) / 60)
         print str(round(i * 100.0 / n, 1)) + "%" + ' remain: ' + str(remaintime) + ' mins'
         timer = timeit.default_timer()
 
     print "done in " + str(round(timeit.default_timer() - start, 2)) + ' seconds'
 
     data = [MAP, x_array]
+
     with open('slam_data', 'wb') as sd:
         pickle.dump(data, sd)
+
+    slam_lib.plot_results(MAP, x_array)

@@ -5,17 +5,17 @@ import matplotlib.pyplot as plt
 import timeit
 
 
-def slam(particles, weights, lidar, MAP, head, odom_prev, odom, i_best,iter):
+def slam(particles, weights, lidar, MAP, head, odom_prev, odom, i_best, iter):
     particles = prediction(particles, odom_prev, odom)
-    if iter%10==0:
+    if iter % 100 == 0:
         particles, weights, new_best = update(particles, weights, lidar, MAP, head)
-        MAP = mapping(MAP, lidar, head, particles[:,i_best])
+        MAP = mapping(MAP, lidar, head, particles[:, i_best])
     else:
         new_best = i_best
     return particles, weights, MAP, new_best
 
 
-def resampling(particles, weights):
+def resampling(particles, weights, i_best):
     n = np.shape(particles)[1]
     weights = np.exp(weights)
     newparticles = particles
@@ -29,13 +29,12 @@ def resampling(particles, weights):
             j += 1
             c += weights[j]
         newparticles[:, k] = particles[:, j]
-    return newparticles, newweights
+        if np.all(newparticles[:, k] == particles[:, i_best]):
+            new_best = k
+    return newparticles, newweights, new_best
 
 
 def update(particles, weights, lidar, MAP, head):
-    start = timeit.default_timer()
-
-    # print 'update'
     n = np.shape(particles)[1]
     corr_array = np.zeros((1, n))[0]
     angles = np.array([np.arange(-135, 135.25, 0.25) * np.pi / 180.])
@@ -55,12 +54,12 @@ def update(particles, weights, lidar, MAP, head):
 
     x_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
     y_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
-    yaw_range = np.arange(-0.2, 0.2 + 0.1, 0.1)
+    yaw_range = np.arange(-0.2, 0.2 + 0.05, 0.05)
 
     converted_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
     binary_map = converted_map
     binary_map[converted_map > 0.6] = 1
-    binary_map[np.logical_and(converted_map <= 0.6 , converted_map >= 0.4)] = 0
+    binary_map[np.logical_and(converted_map <= 0.6, converted_map >= 0.4)] = 0
     binary_map[converted_map < 0.4] = -1
 
     for i in range(n):
@@ -68,17 +67,17 @@ def update(particles, weights, lidar, MAP, head):
         c_array = []
         pose_array = []
         for w_yaw in yaw_range:
-            xs0, ys0 = Cartesian2World(xs0, ys0, head, pose + [0, 0, w_yaw])
+            xs1, ys1 = Cartesian2World(xs0, ys0, head, pose + [0, 0, w_yaw])
 
             # convert position in the map frame here
-            Y = np.concatenate([np.concatenate([xs0, ys0], axis=0), np.zeros(xs0.shape)], axis=0)
+            Y = np.concatenate([np.concatenate([xs1, ys1], axis=0), np.zeros(xs1.shape)], axis=0)
 
             c = p3_utils.mapCorrelation(binary_map.astype(np.int8), x_im, y_im, Y[0:3, :], x_range, y_range)
             c_array.append(np.amax(c))
-            ix, iy = np.unravel_index(np.argmax(c), (9,9))
+            ix, iy = np.unravel_index(np.argmax(c), (9, 9))
             pose_array.append(pose + [x_range[ix], y_range[iy], w_yaw])
         corr_array[i] = np.amax(c_array)
-        # particles[:, i] = pose_array[np.argmax(c_array)]
+        particles[:, i] = pose_array[np.argmax(c_array)]
 
     weights += corr_array
     weights = weights - np.amax(weights) - np.log(np.sum(np.exp(weights - np.amax(weights))))
@@ -87,8 +86,7 @@ def update(particles, weights, lidar, MAP, head):
     i_best = np.argmax(weights)
 
     if N_eff < n / 2:
-        particles, weights = resampling(particles, weights)
-    print "update " + str(round(timeit.default_timer() - start, 3)) + ' seconds',
+        particles, weights, i_best = resampling(particles, weights, i_best)
     return particles, weights, i_best
 
 
@@ -100,7 +98,7 @@ def prediction(particles, odom_prev, odom):
     noise = np.random.randn(n, 3)
     for i in range(n):
         sigma = np.array([0.0001, 0.0001, 0.0001])
-        w = sigma * noise[i,:]
+        w = sigma * noise[i, :]
         p_x, R_x = pose_transform(particles[:, i] + w)
         p, R = smart_plus(p_x, R_x, p_u, R_u)
         roll, pitch, yaw = transforms3d.euler.mat2euler(R, axes='sxyz')
@@ -133,10 +131,13 @@ def init_map(lidar, head, pose):
     return MAP
 
 
-def mapping(MAP, lidar, head, pose):
-    start = timeit.default_timer()
+def path_in_grid(x, y, MAP):
+    gridr = map(int, (x - MAP['xmin']) / MAP['res'])
+    gridc = map(int, (y - MAP['xmin']) / MAP['res'])
+    return [gridr, gridc]
 
-    # print 'mapping'
+
+def mapping(MAP, lidar, head, pose):
     angles = np.array([np.arange(-135, 135.25, 0.25) * np.pi / 180.])
     ranges = np.double(lidar['scan'])
 
@@ -170,13 +171,14 @@ def mapping(MAP, lidar, head, pose):
                              (yif < MAP['sizey']))
     MAP['map'][xif[0][indFree[0]], yif[0][indFree[0]]] += np.log(0.25)
 
-    print "mapping " + str(round(timeit.default_timer() - start, 3)) + ' seconds',
     return MAP
 
 
-def plot_map(MAP):
+def plot_results(MAP, x_array):
     binary_map = 1 - np.power(1 + np.exp(MAP['map']), -1)
     plt.imshow(binary_map, cmap="binary")
+    [row, col] = path_in_grid(x_array[0, :], x_array[1, :], MAP)
+    plt.plot(col, row, 'b')
     plt.show()
 
 
@@ -223,7 +225,7 @@ def Cartesian2World(x, y, head, pose):
     pos = np.matrix(np.vstack((x, y, z, a)))
     newpos = T * pos
 
-    aboveGround = newpos[2]>0.1
+    aboveGround = newpos[2] > 0.1
 
     return np.asarray(newpos[0][aboveGround]), np.asarray(newpos[1][aboveGround])
 
