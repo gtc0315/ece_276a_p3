@@ -10,9 +10,9 @@ import pickle
 if __name__ == '__main__':
     start = timeit.default_timer()  # start timer
     # load data
-    j0 = load_data.get_joint("joint/train_joint3")
+    j0 = load_data.get_joint("joint/train_joint0")
     head_idx = load_data.get_joint_index('Head')
-    l0 = load_data.get_lidar("lidar/train_lidar3")
+    l0 = load_data.get_lidar("lidar/train_lidar0")
     # r0 = load_data.get_rgb("cam/RGB_0")
     # d0 = load_data.get_depth("cam/DEPTH_0")
     # exIR_RGB = load_data.getExtrinsics_IR_RGB()
@@ -24,14 +24,13 @@ if __name__ == '__main__':
     # load_data.replay_rgb(r0)
     # load_data.replay_depth(d0)
 
-    particle_num = 10
+    particle_num = 20
     n = len(l0)
-    x = np.array([0, 0, 0])
     particles = np.zeros((3, particle_num))
     weights = np.log(np.ones((1, particle_num))[0] / particle_num)
     odom_prev = np.array([0, 0, 0])
     i_best = 0
-    MAP = slam_lib.init_map(l0[0], slam_lib.find_head_angles(j0, np.asscalar(l0[0]['t'])), np.array([0, 0, 0]))
+    MAP = slam_lib.init_map()
     x_array = np.zeros((3, n))
     for i in range(n):
         ts = np.asscalar(l0[i]['t'])
@@ -45,7 +44,7 @@ if __name__ == '__main__':
 
         x_array[:, i] = particles[:, i_best]
 
-        remaintime = round((timeit.default_timer() - start) / (i + 1) * (n - i) / 60)
+        remaintime = round((timeit.default_timer() - start) / (i + 1.0) * (n - i) / 60)
         print str(round(i * 100.0 / n, 1)) + "%" + ' remain: ' + str(remaintime) + ' mins'
         timer = timeit.default_timer()
 

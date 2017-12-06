@@ -2,7 +2,6 @@ import numpy as np
 import transforms3d
 import p3_utils
 import matplotlib.pyplot as plt
-import timeit
 
 
 def slam(particles, weights, lidar, MAP, head, odom_prev, odom, i_best, iter):
@@ -97,7 +96,7 @@ def prediction(particles, odom_prev, odom):
     p_u, R_u = smart_minus(p1, R1, p2, R2)
     noise = np.random.randn(n, 3)
     for i in range(n):
-        sigma = np.array([0.0001, 0.0001, 0.0001])
+        sigma = np.array([0.0001, 0.0001, 0.0005])
         w = sigma * noise[i, :]
         p_x, R_x = pose_transform(particles[:, i] + w)
         p, R = smart_plus(p_x, R_x, p_u, R_u)
@@ -116,7 +115,7 @@ def dead_reckoning(x_prev, odom_prev, odom):
     return np.array([p[0], p[1], yaw])
 
 
-def init_map(lidar, head, pose):
+def init_map():
     # init MAP
     MAP = {}
     MAP['res'] = 0.05  # meters
@@ -127,7 +126,6 @@ def init_map(lidar, head, pose):
     MAP['sizex'] = int(np.ceil((MAP['xmax'] - MAP['xmin']) / MAP['res'] + 1))  # cells
     MAP['sizey'] = int(np.ceil((MAP['ymax'] - MAP['ymin']) / MAP['res'] + 1))
     MAP['map'] = np.zeros((MAP['sizex'], MAP['sizey']), dtype=float)  # DATA TYPE: char or int8
-    MAP = mapping(MAP, lidar, head, pose)
     return MAP
 
 
@@ -179,6 +177,7 @@ def plot_results(MAP, x_array):
     plt.imshow(binary_map, cmap="binary")
     [row, col] = path_in_grid(x_array[0, :], x_array[1, :], MAP)
     plt.plot(col, row, 'b')
+    plt.axis([0, 800, 800, 0])
     plt.show()
 
 

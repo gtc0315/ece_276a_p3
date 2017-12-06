@@ -1,6 +1,5 @@
 import pickle
 import slam_lib
-import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
